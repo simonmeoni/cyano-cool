@@ -1,14 +1,11 @@
 import io
 import os
 import zipfile
-from http.client import HTTPException
-
-import streamlit as st
 
 import cv2
 import numpy as np
+import streamlit as st
 from PIL import Image
-from starlette.responses import StreamingResponse
 
 acv_bytes = open("32419-cyanotype-curve.acv", "rb").read()
 
