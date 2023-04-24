@@ -31,7 +31,17 @@ def convert_to_contact_negative(img_bytes, extension):
     inverted = 255 - gray
     curve_data = load_acv_file(io.BytesIO(acv_bytes))
     adjusted = apply_curve(inverted, curve_data)
-    is_success, buffer = cv2.imencode(f".{extension}", adjusted)
+
+    if extension.lower() in ["jpg", "jpeg"]:
+        encode_params = [int(cv2.IMWRITE_JPEG_QUALITY), 100]
+    elif extension.lower() == "png":
+        encode_params = [int(cv2.IMWRITE_PNG_COMPRESSION), 0]
+    elif extension.lower() in ["tif", "tiff"]:
+        encode_params = []
+    else:
+        encode_params = []
+
+    is_success, buffer = cv2.imencode(f".{extension}", adjusted, encode_params)
     return (
         {"content": buffer.tobytes()}
         if is_success
@@ -97,7 +107,7 @@ if uploaded_file:
             label="Download Negative",
             data=io.BytesIO(contact_negative["content"]),
             file_name=f"{uploaded_file.name.split('.')[0]}_negative{file_extension}",
-            mime=f"image/tiff",
+            mime=f"image/{file_extension}",
         )
 if uploaded_files:
     if st.button("Cyanotype Folder Conversion"):
