@@ -33,11 +33,11 @@ def convert_to_contact_negative(img_bytes, extension):
     adjusted = apply_curve(inverted, curve_data)
 
     if extension.lower() in ["jpg", "jpeg"]:
-        encode_params = [int(cv2.IMWRITE_JPEG_QUALITY), 100]
+        encode_params = [int(cv2.IMWRITE_JPEG_QUALITY), 0]
     elif extension.lower() == "png":
         encode_params = [int(cv2.IMWRITE_PNG_COMPRESSION), 0]
     elif extension.lower() in ["tif", "tiff"]:
-        encode_params = []
+        encode_params = [int(cv2.IMWRITE_TIFF_COMPRESSION), 1]
     else:
         encode_params = []
 
