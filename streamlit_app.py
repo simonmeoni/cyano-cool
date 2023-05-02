@@ -1,4 +1,5 @@
 import io
+import math
 import os
 import zipfile
 
@@ -25,26 +26,20 @@ def load_image(input_image_bytes):
     return cv2.imdecode(np.frombuffer(input_image_bytes, np.uint8), cv2.IMREAD_COLOR)
 
 
-def convert_to_contact_negative(img_bytes, extension):
+def convert_to_contact_negative(img_bytes, extension, dpi):
     img = load_image(img_bytes)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     inverted = 255 - gray
     curve_data = load_acv_file(io.BytesIO(acv_bytes))
     adjusted = apply_curve(inverted, curve_data)
 
-    if extension.lower() in ["jpg", "jpeg"]:
-        encode_params = [int(cv2.IMWRITE_JPEG_QUALITY), 0]
-    elif extension.lower() == "png":
-        encode_params = [int(cv2.IMWRITE_PNG_COMPRESSION), 0]
-    elif extension.lower() in ["tif", "tiff"]:
-        encode_params = [int(cv2.IMWRITE_TIFF_COMPRESSION), 1]
-    else:
-        encode_params = []
+    adjusted_buffer = io.BytesIO()
+    Image.fromarray(adjusted).save(adjusted_buffer, format="TIFF", dpi=(dpi, dpi))
+    adjusted_buffer.seek(0)
 
-    is_success, buffer = cv2.imencode(f".{extension}", adjusted, encode_params)
     return (
-        {"content": buffer.tobytes()}
-        if is_success
+        {"content": adjusted_buffer.getvalue()}
+        if adjusted_buffer
         else {"error": "Cannot save the output image."}
     )
 
@@ -56,18 +51,20 @@ def apply_brightness_contrast(img_array, brightness, contrast):
     return np.uint8(img_array)
 
 
-def convert_folder(input_images):
+def convert_folder(input_images, dpi=300):
     memfile = io.BytesIO()
     with zipfile.ZipFile(memfile, mode="w") as zf:
         for input_image in input_images:
             img_bytes = input_image.read()
             extension = input_image.name.split(".")[-1]
-            buffer = convert_to_contact_negative(img_bytes, extension)["content"]
+            buffer = convert_to_contact_negative(img_bytes, extension, dpi=dpi)[
+                "content"
+            ]
             output_filename = f"output_{input_image.name}"
             with open(output_filename, mode="wb") as f:
                 f.write(buffer)
             zf.write(output_filename, arcname=output_filename)
-
+            os.remove(output_filename)
     return memfile.getvalue()
 
 
@@ -82,6 +79,7 @@ uploaded_files = st.file_uploader(
 )
 
 if uploaded_file:
+    dpi = st.number_input("🖨️ DPI: ", min_value=1, max_value=12000, value=300, step=1)
     image = Image.open(uploaded_file)
     img_array = np.array(image)
     img_array = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
@@ -95,10 +93,10 @@ if uploaded_file:
         img_array = apply_brightness_contrast(image, brightness, contrast)
         adjusted_buffer = io.BytesIO()
         _, file_extension = os.path.splitext(uploaded_file.name)
-        Image.fromarray(img_array).save(adjusted_buffer, format="TIFF")
+        Image.fromarray(img_array).save(adjusted_buffer, format="TIFF", dpi=(dpi, dpi))
         adjusted_buffer.seek(0)
         contact_negative = convert_to_contact_negative(
-            adjusted_buffer.getvalue(), file_extension
+            adjusted_buffer.getvalue(), file_extension, dpi
         )
         result_image = Image.open(io.BytesIO(contact_negative["content"]))
         st.image(result_image, caption="Cyanotype Image")
@@ -110,8 +108,9 @@ if uploaded_file:
             mime=f"image/{file_extension}",
         )
 if uploaded_files:
+    dpi = st.number_input("🖨️ DPI: ", min_value=1, max_value=12000, value=300, step=1)
     if st.button("Cyanotype Folder Conversion"):
-        contact_negative = convert_folder(uploaded_files)
+        contact_negative = convert_folder(uploaded_files, dpi=dpi)
         st.success("Images converted successfully!")
         st.download_button(
             label="Download Zip",
