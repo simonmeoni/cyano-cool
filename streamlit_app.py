@@ -292,7 +292,7 @@ if uploaded_file:
         )
 
 if uploaded_files:
-    dpi = st.number_input(
+    dpi_folder = st.number_input(
         "🖨️ DPI: ",
         min_value=1,
         max_value=12000,
@@ -300,7 +300,7 @@ if uploaded_files:
         step=1,
     )
     if st.button("🪬 Cyanotype Folder Conversion"):
-        converted_folder = convert_folder(uploaded_files, dpi=dpi)
+        converted_folder = convert_folder(uploaded_files, dpi=dpi_folder)
         st.success("Images converted successfully!")
         st.download_button(
             label="Download Zip",
