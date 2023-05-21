@@ -105,10 +105,10 @@ def assemble_images(input_images, dpi=300, width_cm=100, cyanotype_conversion=Fa
             constant_values=255,
         )
 
-        if current_width + img.shape[0] > width_cm * px_cm:
+        if current_width + img.shape[0] >= width_cm * px_cm:
             normalize_image(img_stack, 0)
             img_big.append(np.hstack(img_stack))
-            img_stack = []
+            img_stack = [img]
             current_width = 0
         else:
             img_stack.append(img)
